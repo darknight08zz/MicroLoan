@@ -39,9 +39,16 @@ export function LoanMarketplace({
   onRequestLoanClick,
 }: LoanMarketplaceProps) {
   const [filterTab, setFilterTab] = useState<string>(initialFilter);
+  const [prevInitialFilter, setPrevInitialFilter] = useState<string>(initialFilter);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "dueDate" | "amountHigh" | "amountLow">("newest");
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+
+  // Synchronize state when initialFilter prop changes without cascading effect renders
+  if (initialFilter !== prevInitialFilter) {
+    setPrevInitialFilter(initialFilter);
+    setFilterTab(initialFilter);
+  }
 
   const filteredLoans = useMemo(() => {
     let result = [...loans];

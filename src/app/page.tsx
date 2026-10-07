@@ -170,8 +170,10 @@ export default function MicroLoanApp() {
   const handleRoleChange = (role: Role) => {
     if (role === "borrower") {
       setViewMode("borrow");
+      setBorrowerTab("my-loans");
     } else {
       setViewMode("lender");
+      setLenderTab("marketplace");
     }
   };
 
@@ -183,8 +185,10 @@ export default function MicroLoanApp() {
       setLenderTab("marketplace");
     } else if (nav === "borrow") {
       setViewMode("borrow");
+      setBorrowerTab("my-loans");
     } else if (nav === "lender") {
       setViewMode("lender");
+      setLenderTab("marketplace");
     } else if (nav === "dashboard") {
       if (activeRole === "borrower") {
         setViewMode("borrow");
@@ -196,7 +200,14 @@ export default function MicroLoanApp() {
     }
   };
 
-  // Filter user-specific loans
+  // Immediate loan refetch on account change
+  useEffect(() => {
+    if (account) {
+      void refetchLoans();
+    }
+  }, [account, refetchLoans]);
+
+  // Filter user-specific loans (case-insensitive)
   const borrowerLoans = useMemo(() => {
     if (!account) return [];
     const normalized = account.toLowerCase();
@@ -497,7 +508,7 @@ export default function MicroLoanApp() {
                         : "text-[#666666] hover:text-[#111111]"
                     }`}
                   >
-                    My Loans ({borrowerLoans.length})
+                    My Loans {account ? `(${borrowerLoans.length})` : ""}
                   </button>
                 </div>
               </div>
@@ -524,6 +535,8 @@ export default function MicroLoanApp() {
                 repayStatus={repayTxStatus}
                 onCreateNewClick={() => setBorrowerTab("create")}
                 isAnyTxPending={isAnyTxPending}
+                connectedAccount={account}
+                onConnectWallet={connectWallet}
               />
             )}
           </div>
@@ -574,7 +587,7 @@ export default function MicroLoanApp() {
                         : "text-[#666666] hover:text-[#111111]"
                     }`}
                   >
-                    Portfolio ({lenderPortfolioLoans.length})
+                    Portfolio {account ? `(${lenderPortfolioLoans.length})` : ""}
                   </button>
                 </div>
               </div>
@@ -584,6 +597,7 @@ export default function MicroLoanApp() {
             {lenderTab === "marketplace" ? (
               <LoanMarketplace
                 loans={loans}
+                initialFilter="requested"
                 isLoading={isLoansLoading}
                 onFund={handleFund}
                 isFundingLoan={(id) => fundingLoanId === id && isFundTxLoading}
@@ -603,6 +617,8 @@ export default function MicroLoanApp() {
                 portfolioLoans={lenderPortfolioLoans}
                 isLoading={isLoansLoading}
                 onExploreMarketplaceClick={() => setLenderTab("marketplace")}
+                connectedAccount={account}
+                onConnectWallet={connectWallet}
               />
             )}
           </div>

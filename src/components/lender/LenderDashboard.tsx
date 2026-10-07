@@ -11,32 +11,45 @@ export interface LenderDashboardProps {
   portfolioLoans: Loan[];
   isLoading: boolean;
   onExploreMarketplaceClick?: () => void;
+  connectedAccount?: string | null;
+  onConnectWallet?: () => void;
 }
 
 export function LenderDashboard({
   portfolioLoans,
   isLoading,
   onExploreMarketplaceClick,
+  connectedAccount,
+  onConnectWallet,
 }: LenderDashboardProps) {
   const [filterTab, setFilterTab] = useState<"all" | "active" | "repaid">("all");
 
+  // Strict case-insensitive filtering for the connected lender's funded portfolio
+  const userPortfolioLoans = useMemo(() => {
+    if (!connectedAccount) return [];
+    const normalized = connectedAccount.toLowerCase();
+    return portfolioLoans.filter(
+      (l) => l.lender.toLowerCase() === normalized && l.status !== "Requested"
+    );
+  }, [portfolioLoans, connectedAccount]);
+
   const filteredLoans = useMemo(() => {
     if (filterTab === "active") {
-      return portfolioLoans.filter((l) => l.status === "Funded" || l.status === "Withdrawn");
+      return userPortfolioLoans.filter((l) => l.status === "Funded" || l.status === "Withdrawn");
     }
     if (filterTab === "repaid") {
-      return portfolioLoans.filter((l) => l.status === "Repaid");
+      return userPortfolioLoans.filter((l) => l.status === "Repaid");
     }
-    return portfolioLoans;
-  }, [portfolioLoans, filterTab]);
+    return userPortfolioLoans;
+  }, [userPortfolioLoans, filterTab]);
 
-  // Financial calculations
+  // Financial calculations strictly for the connected lender's portfolio
   let totalSuppliedEth = 0;
   let totalExpectedRepaymentEth = 0;
   let activeLoansCount = 0;
   let repaidLoansCount = 0;
 
-  for (const l of portfolioLoans) {
+  for (const l of userPortfolioLoans) {
     const p = parseFloat(l.principal.replace(/\s*ETH/gi, "")) || 0;
     const r = parseFloat(l.repayment.replace(/\s*ETH/gi, "")) || p;
     totalSuppliedEth += p;
@@ -52,6 +65,37 @@ export function LenderDashboard({
     if (!addr || addr === "-" || addr.length < 10) return addr;
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
+
+  // 1. Disconnected Wallet Empty State: Never display personal portfolio metrics when disconnected
+  if (!connectedAccount) {
+    return (
+      <div className="w-full">
+        <div className="p-16 text-center bg-[#ffffff] border border-[#e5e5e5] rounded-[16px]">
+          <div className="w-12 h-12 rounded-full bg-[#f5f5f5] flex items-center justify-center text-[#111111] mx-auto mb-4 border border-[#e5e5e5]">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
+            </svg>
+          </div>
+          <div className="text-base font-bold text-[#111111] mb-1">
+            Connect your wallet to view your funded portfolio.
+          </div>
+          <p className="text-xs text-[#666666] max-w-sm mx-auto mb-6">
+            Please connect your MetaMask wallet to monitor the loans you have funded and track expected returns.
+          </p>
+          {onConnectWallet && (
+            <Button variant="primary" size="md" onClick={onConnectWallet}>
+              Connect Wallet
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -110,7 +154,7 @@ export function LenderDashboard({
       <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-[#e5e5e5]">
         <div className="flex items-center gap-1">
           {[
-            { id: "all", label: "All Portfolio", count: portfolioLoans.length },
+            { id: "all", label: "All Portfolio", count: userPortfolioLoans.length },
             { id: "active", label: "Active Loans", count: activeLoansCount },
             { id: "repaid", label: "Settled Loans", count: repaidLoansCount },
           ].map((tab) => (
@@ -144,7 +188,7 @@ export function LenderDashboard({
       </div>
 
       {/* Portfolio Loans Table / Cards */}
-      {isLoading && portfolioLoans.length === 0 ? (
+      {isLoading && userPortfolioLoans.length === 0 ? (
         <div className="p-16 text-center bg-[#ffffff] border border-[#e5e5e5] rounded-[16px]">
           <div className="w-5 h-5 rounded-full border-2 border-[#e5e5e5] border-t-[#111111] animate-spin mx-auto mb-3" />
           <p className="text-xs text-[#666666]">Querying your funded portfolio from Sepolia...</p>
