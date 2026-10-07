@@ -1,15 +1,126 @@
 @import "tailwindcss";
 
+
 :root {
-  --background: #ffffff;
-  --background-secondary: #fafafa;
-  --foreground: #333333;
-  --heading: #111111;
-  --muted: #666666;
-  --border-default: #e5e5e5;
-  --border-strong: #d4d4d4;
-  --btn-primary: #111111;
-  --btn-primary-hover: #2a2a2a;
+  --theme-page-bg: #ffffff;
+  --theme-surface-primary: #ffffff;
+  --theme-surface-secondary: #fafafa;
+  --theme-surface-card: #ffffff;
+  --theme-surface-elevated: #ffffff;
+  --theme-surface-subtle: #f5f5f5;
+  --theme-border: #e5e5e5;
+  --theme-border-strong: #d4d4d4;
+  --theme-text-primary: #111111;
+  --theme-text-secondary: #333333;
+  --theme-text-muted: #666666;
+  --theme-accent: #111111;
+  --theme-accent-hover: #2a2a2a;
+  --theme-accent-text: #ffffff;
+  --theme-accent-soft: #f5f5f5;
+  --theme-warm-neutral: #111111;
+
+  --theme-input-bg: #ffffff;
+  --theme-input-border: #e5e5e5;
+  --theme-input-text: #111111;
+  --theme-input-placeholder: #999999;
+  --theme-input-focus: #111111;
+
+  /* Semantic Status Tokens (Light) */
+  --status-requested-bg: #f5f5f5;
+  --status-requested-text: #4b5563;
+  --status-requested-border: #e5e5e5;
+  --status-requested-dot: #4b5563;
+
+  --status-funded-bg: #eff6ff;
+  --status-funded-text: #1d4ed8;
+  --status-funded-border: #dbeafe;
+  --status-funded-dot: #1d4ed8;
+
+  --status-withdrawn-bg: #f5f3ff;
+  --status-withdrawn-text: #6d28d9;
+  --status-withdrawn-border: #ede9fe;
+  --status-withdrawn-dot: #6d28d9;
+
+  --status-repaid-bg: #f0fdf4;
+  --status-repaid-text: #16803c;
+  --status-repaid-border: #bbf7d0;
+  --status-repaid-dot: #16803c;
+
+  --status-defaulted-bg: #fef2f2;
+  --status-defaulted-text: #b42318;
+  --status-defaulted-border: #fecaca;
+  --status-defaulted-dot: #b42318;
+
+  --status-warning-bg: #fefce8;
+  --status-warning-text: #a16207;
+  --status-warning-border: #fef08a;
+  --status-warning-dot: #a16207;
+
+  /* Tailwind inline mapping variables */
+  --background: var(--theme-page-bg);
+  --foreground: var(--theme-text-secondary);
+}
+
+.dark, [data-theme="dark"] {
+  /* Dark Theme Tokens (Clean Monochromatic Neutral) */
+  --theme-page-bg: #0f0f0f;
+  --theme-surface-primary: #181818;
+  --theme-surface-secondary: #1e1e1e;
+  --theme-surface-card: #181818;
+  --theme-surface-elevated: #242424;
+  --theme-surface-subtle: #1a1a1a;
+  --theme-border: #2a2a2a;
+  --theme-border-strong: #383838;
+  --theme-text-primary: #f5f5f5;
+  --theme-text-secondary: #a3a3a3;
+  --theme-text-muted: #737373;
+  --theme-accent: #f5f5f5;
+  --theme-accent-hover: #e5e5e5;
+  --theme-accent-dark: #242424;
+  --theme-accent-soft: #1e1e1e;
+  --theme-accent-text: #111111;
+  --theme-warm-neutral: #f5f5f5;
+
+  --theme-input-bg: #181818;
+  --theme-input-border: #2e2e2e;
+  --theme-input-text: #f5f5f5;
+  --theme-input-placeholder: #737373;
+  --theme-input-focus: #f5f5f5;
+
+  /* Semantic Status Tokens (Dark - Muted & Calm) */
+  --status-requested-bg: #2A2315;
+  --status-requested-text: #E0A34B;
+  --status-requested-border: #443720;
+  --status-requested-dot: #E0A34B;
+
+  --status-funded-bg: #172433;
+  --status-funded-text: #82AEE6;
+  --status-funded-border: #263852;
+  --status-funded-dot: #82AEE6;
+
+  --status-withdrawn-bg: #251C33;
+  --status-withdrawn-text: #B898EC;
+  --status-withdrawn-border: #3C2C54;
+  --status-withdrawn-dot: #B898EC;
+
+  --status-repaid-bg: #19271C;
+  --status-repaid-text: #96CC9E;
+  --status-repaid-border: #2A4430;
+  --status-repaid-dot: #96CC9E;
+
+  --status-defaulted-bg: #2D1818;
+  --status-defaulted-text: #EA8A8A;
+  --status-defaulted-border: #4D2626;
+  --status-defaulted-dot: #EA8A8A;
+
+  --status-warning-bg: #2A2315;
+  --status-warning-text: #E0A34B;
+  --status-warning-border: #443720;
+  --status-warning-dot: #E0A34B;
+
+  /* Tailwind inline mapping variables */
+  --background: var(--theme-page-bg);
+  --foreground: var(--theme-text-secondary);
 }
 
 @theme inline {
@@ -20,15 +131,305 @@
 }
 
 body {
-  background-color: #ffffff;
-  color: #333333;
+  background-color: var(--theme-page-bg);
+  color: var(--theme-text-secondary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* ==========================================================================
-   Smooth Page & Role Slide Transitions
+   Smooth Theme Transitions (200-250ms)
+   ========================================================================== */
+
+body,
+header,
+nav,
+main,
+footer,
+section,
+button,
+input,
+select,
+textarea,
+div,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+table,
+tr,
+th,
+td,
+a {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   Dark Theme Architectural Component Overrides
+   Preserves 100% of the light theme markup, layout & responsive structure
+   ========================================================================== */
+
+.dark body {
+  background-color: var(--theme-page-bg) !important;
+  color: var(--theme-text-secondary) !important;
+}
+
+/* Page Containers & Sections */
+.dark .min-h-screen {
+  background-color: var(--theme-page-bg) !important;
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark section,
+.dark main {
+  background-color: transparent !important;
+}
+
+.dark section.bg-\[\#ffffff\] {
+  background-color: var(--theme-page-bg) !important;
+}
+
+/* Header & Navigation */
+.dark header {
+  background-color: rgba(18, 18, 18, 0.95) !important;
+  border-color: #2a2a2a !important;
+}
+
+.dark .border-b.border-\[\#e5e5e5\],
+.dark .border-t.border-\[\#e5e5e5\],
+.dark .border-\[\#e5e5e5\] {
+  border-color: var(--theme-border) !important;
+}
+
+.dark .border-\[\#d4d4d4\],
+.dark .border-\[\#d9d9d9\] {
+  border-color: var(--theme-border-strong) !important;
+}
+
+/* Cards & Surfaces */
+.dark .bg-\[\#ffffff\] {
+  background-color: var(--theme-surface-card) !important;
+}
+
+.dark .bg-\[\#ffffff\]\/95 {
+  background-color: rgba(18, 18, 18, 0.95) !important;
+}
+
+.dark .bg-\[\#fafafa\] {
+  background-color: var(--theme-surface-secondary) !important;
+}
+
+.dark .bg-\[\#f5f5f5\] {
+  background-color: var(--theme-surface-subtle) !important;
+}
+
+/* Typography Tokens */
+.dark .text-\[\#111111\] {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark .text-\[\#333333\] {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark .text-\[\#666666\] {
+  color: var(--theme-text-muted) !important;
+}
+
+.dark .text-\[\#4b5563\] {
+  color: var(--theme-text-muted) !important;
+}
+
+/* Role Selector Indicator Line */
+.dark nav span.bg-\[\#111111\] {
+  background-color: var(--theme-accent) !important;
+}
+
+/* Subnav Switch & Segmented Tabs */
+.dark .bg-\[\#f5f5f5\].rounded-\[10px\] {
+  background-color: var(--theme-surface-subtle) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dark .bg-\[\#f5f5f5\].rounded-\[10px\] button.bg-\[\#ffffff\] {
+  background-color: var(--theme-surface-elevated) !important;
+  color: var(--theme-text-primary) !important;
+  border-color: var(--theme-border-strong) !important;
+}
+
+/* Interactive Buttons */
+.dark button.bg-\[\#111111\],
+.dark a.bg-\[\#111111\] {
+  background-color: var(--theme-accent) !important;
+  color: var(--theme-accent-text) !important;
+  border-color: transparent !important;
+}
+
+.dark button.bg-\[\#111111\]:hover:not(:disabled),
+.dark a.bg-\[\#111111\]:hover {
+  background-color: var(--theme-accent-hover) !important;
+  color: var(--theme-accent-text) !important;
+}
+
+.dark button.bg-\[\#ffffff\],
+.dark button.border-\[\#d9d9d9\] {
+  background-color: var(--theme-surface-secondary) !important;
+  color: var(--theme-text-primary) !important;
+  border-color: var(--theme-border) !important;
+}
+
+.dark button.bg-\[\#ffffff\]:hover:not(:disabled),
+.dark button.border-\[\#d9d9d9\]:hover:not(:disabled) {
+  background-color: var(--theme-surface-elevated) !important;
+  border-color: var(--theme-border-strong) !important;
+}
+
+/* Filter Tab Pills */
+.dark button.bg-\[\#111111\].text-\[\#ffffff\] {
+  background-color: var(--theme-surface-elevated) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark button.bg-\[\#111111\].text-\[\#ffffff\] span.bg-\[\#333333\] {
+  background-color: var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark span.bg-\[\#f0f0f0\] {
+  background-color: #242424 !important;
+  color: var(--theme-text-muted) !important;
+}
+
+/* Forms & Inputs */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--theme-input-bg) !important;
+  border-color: var(--theme-input-border) !important;
+  color: var(--theme-input-text) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--theme-input-placeholder) !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: var(--theme-input-focus) !important;
+  outline: none !important;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  cursor: pointer;
+}
+
+.dark input:disabled {
+  background-color: #1a1a1a !important;
+  color: var(--theme-text-muted) !important;
+}
+
+/* Status Badges */
+.dark .bg-\[\#f5f5f5\].border-\[\#e5e5e5\] {
+  background-color: var(--status-requested-bg) !important;
+  color: var(--status-requested-text) !important;
+  border-color: var(--status-requested-border) !important;
+}
+
+.dark .bg-\[\#f5f5f5\].border-\[\#d4d4d4\] {
+  background-color: var(--status-funded-bg) !important;
+  color: var(--status-funded-text) !important;
+  border-color: var(--status-funded-border) !important;
+}
+
+.dark .bg-\[\#f0fdf4\].border-\[\#bbf7d0\],
+.dark .bg-\[\#f0fdf4\].border-\[\#dcfce7\] {
+  background-color: var(--status-repaid-bg) !important;
+  color: var(--status-repaid-text) !important;
+  border-color: var(--status-repaid-border) !important;
+}
+
+.dark .bg-\[\#fefce8\].border-\[\#fef08a\] {
+  background-color: var(--status-warning-bg) !important;
+  color: var(--status-warning-text) !important;
+  border-color: var(--status-warning-border) !important;
+}
+
+.dark .bg-\[\#fef2f2\].border-\[\#fecaca\],
+.dark .bg-\[\#fef2f2\].border-\[\#fee2e2\] {
+  background-color: var(--status-defaulted-bg) !important;
+  color: var(--status-defaulted-text) !important;
+  border-color: var(--status-defaulted-border) !important;
+}
+
+/* Modals & Popups */
+.dark [role="dialog"] {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark .bg-\[\#000000\]\/40 {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Footer */
+.dark footer {
+  background-color: #141414 !important;
+  border-color: #2a2a2a !important;
+  color: var(--theme-text-muted) !important;
+}
+
+/* Dropdown Menu in Navbar */
+.dark .shadow-\[0_6px_20px_rgba\(0\,0\,0\,0\.08\)\] {
+  background-color: var(--theme-surface-card) !important;
+  border-color: var(--theme-border) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Prominent Notice Banner (Active Repayment Notice in Borrower Dashboard) */
+.dark .border-2.border-\[\#111111\] {
+  border-color: var(--theme-accent) !important;
+  background-color: var(--theme-surface-elevated) !important;
+}
+
+/* Progress bar rail and fill */
+.dark .bg-\[\#e5e5e5\].rounded-full {
+  background-color: #242424 !important;
+}
+
+.dark .bg-\[\#111111\].rounded-full {
+  background-color: var(--theme-accent) !important;
+}
+
+/* Single Loan Verifier bytecode inspector */
+.dark .bg-\[\#f8fafc\] {
+  background-color: #181818 !important;
+}
+
+.dark pre {
+  background-color: #121212 !important;
+  border-color: #2a2a2a !important;
+  color: #a3a3a3 !important;
+}
+
+/* Brand Mark / SVG Strokes */
+.dark .MicroLoanBrandMark rect,
+.dark .MicroLoanBrandMark path {
+  stroke: var(--theme-text-primary) !important;
+}
+
+/* ==========================================================================
+   Smooth Page & Role Slide Transitions (Preserved)
    ========================================================================== */
 
 @keyframes viewFadeSlide {
@@ -112,7 +513,7 @@ body {
 }
 
 /* ==========================================================================
-   Minimalist Monochromatic Button Interactions (No colored glows)
+   Minimalist Button Interactions (Preserved)
    ========================================================================== */
 .btn-interactive {
   transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);

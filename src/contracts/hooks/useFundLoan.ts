@@ -113,7 +113,40 @@ export function useFundLoan(): FundLoanResult {
         return { success: false, error: msg };
       }
 
-      // 8. Execution Lifecycle: Waiting for MetaMask
+      try {
+        const contract = getSignerMicroLoanContract(signer);
+        if (typeof contract.loans === "function") {
+          const liveLoan = await contract.loans(loan.id);
+          const liveStatusCode = Number(liveLoan.status);
+          if (liveStatusCode !== 0) {
+            const statusNames = ["Requested", "Funded", "Withdrawn", "Repaid", "Defaulted"];
+            const currentStatusName = statusNames[liveStatusCode] || `Status #${liveStatusCode}`;
+            const msg = `Cannot fund Loan #${loan.id}: This loan is currently in "${currentStatusName}" state on-chain and is no longer open for funding.`;
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+
+          if (liveLoan.borrower && liveLoan.borrower.toLowerCase() === account.toLowerCase()) {
+            const msg = "Borrower cannot fund own loan. Please switch to a different wallet to fund this request.";
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (liveLoan.dueDate && nowSec > Number(liveLoan.dueDate)) {
+            const msg = `Cannot fund Loan #${loan.id}: The funding deadline has already passed on-chain.`;
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+        }
+      } catch (preCheckErr) {
+        console.warn("[useFundLoan] Note: Live on-chain pre-check could not be completed, proceeding to transaction:", preCheckErr);
+      }
+
+      // 9. Execution Lifecycle: Waiting for MetaMask
       setActiveLoanId(loan.id);
       setStatus("waiting_metamask");
       setErrorMessage(null);
@@ -125,27 +158,7 @@ export function useFundLoan(): FundLoanResult {
         const contract = getSignerMicroLoanContract(signer);
 
         // Call fund(loanId) sending exactly loan.principalRaw as msg.value
-        let tx;
-        try {
-          if (typeof contract.fund === "function") {
-            tx = await contract.fund(loan.id, { value: loan.principalRaw });
-          } else {
-            tx = await contract.fundLoan(loan.id, { value: loan.principalRaw });
-          }
-        } catch (callErr: unknown) {
-          const errObj = callErr as { code?: string | number; message?: string };
-          const isUserCancel =
-            errObj?.code === "ACTION_REJECTED" ||
-            errObj?.code === 4001 ||
-            errObj?.message?.toLowerCase().includes("user rejected") ||
-            errObj?.message?.toLowerCase().includes("user denied");
-
-          if (!isUserCancel && typeof contract.fundLoan === "function") {
-            tx = await contract.fundLoan(loan.id, { value: loan.principalRaw });
-          } else {
-            throw callErr;
-          }
-        }
+        const tx = await contract.fund(loan.id, { value: loan.principalRaw });
 
         const hash = tx.hash as string;
         setTxHash(hash);

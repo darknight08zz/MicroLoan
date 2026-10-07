@@ -1,8 +1,9 @@
-/**
- * Standardized Error Handling Utility for MicroLoan DApp.
- * Converts technical blockchain / ethers / RPC errors into user-friendly messages
- * while preserving full technical details for debugging.
- */
+import { Interface } from "ethers";
+import MicroLoanABI from "@/contracts/abi/MicroLoan.json";
+import { LoanStatusMap } from "@/types/loan";
+
+const microLoanInterface = new Interface(MicroLoanABI);
+
 
 export type ErrorCategory =
   | "METAMASK_NOT_INSTALLED"
@@ -192,40 +193,103 @@ export function parseContractError(err: unknown, context?: ErrorContext): Parsed
     rawStr.includes("execution reverted") ||
     rawStr.includes("reverted") ||
     rawStr.includes("call_exception") ||
+    rawStr.includes("missing revert data") ||
     rawStr.includes("revert");
 
   if (isRevert) {
     let specificRevertReason =
       "The Sepolia smart contract rejected the transaction. The loan conditions were not met.";
 
-    if (rawStr.includes("borrower cannot fund own loan") || rawStr.includes("borrower cannot fund")) {
-      specificRevertReason =
-        "Contract Revert: Borrowers are not permitted to fund their own loan requests.";
-    } else if (
-      rawStr.includes("incorrect eth amount") ||
-      rawStr.includes("incorrect funding amount") ||
-      rawStr.includes("msg.value")
+    let errorData = "";
+    if (typeof err === "object" && err !== null) {
+      const errObj = err as Record<string, unknown>;
+      const innerInfo = errObj.info as { error?: { data?: string } } | undefined;
+      errorData = (errObj.data || innerInfo?.error?.data || "") as string;
+    }
+
+    if (errorData && typeof errorData === "string" && errorData.startsWith("0x")) {
+      try {
+        const decoded = microLoanInterface.parseError(errorData);
+        if (decoded) {
+          if (decoded.name === "InvalidState") {
+            const loanIdArg = decoded.args[0]?.toString();
+            const currentStatusNum = Number(decoded.args[1]);
+            const statusName = LoanStatusMap[currentStatusNum] || `Status #${currentStatusNum}`;
+            specificRevertReason = `Contract Revert: Loan #${loanIdArg} cannot be modified because it is currently in "${statusName}" state.`;
+          } else if (decoded.name === "BorrowerCannotFundOwnLoan") {
+            specificRevertReason =
+              "Contract Revert: Borrowers are not permitted to fund their own loan requests.";
+          } else if (decoded.name === "DeadlinePassed") {
+            const loanIdArg = decoded.args[0]?.toString();
+            specificRevertReason = `Contract Revert: The funding deadline for Loan #${loanIdArg} has already passed.`;
+          } else if (decoded.name === "DeadlineNotPassed") {
+            specificRevertReason = "Contract Revert: The due date has not passed yet.";
+          } else if (decoded.name === "BorrowerOnly") {
+            specificRevertReason =
+              "Contract Revert: Only the registered borrower of this loan is authorized to perform this operation.";
+          } else if (decoded.name === "IncorrectValue") {
+            specificRevertReason =
+              "Contract Revert: The ETH amount sent does not match the exact required loan amount.";
+          } else if (decoded.name === "InvalidLoanId") {
+            const loanIdArg = decoded.args[0]?.toString();
+            specificRevertReason = `Contract Revert: Loan #${loanIdArg} does not exist on the Sepolia smart contract.`;
+          } else if (decoded.name === "ETHTransferFailed") {
+            specificRevertReason = "Contract Revert: Internal ETH transfer failed.";
+          } else if (decoded.name === "ReentrancyDetected") {
+            specificRevertReason = "Contract Revert: Reentrancy protection triggered.";
+          }
+        }
+      } catch {
+        // Fall back to text inspection if custom error could not be parsed
+      }
+    }
+
+    if (
+      specificRevertReason ===
+      "The Sepolia smart contract rejected the transaction. The loan conditions were not met."
     ) {
-      specificRevertReason =
-        "Contract Revert: The ETH amount sent does not match the required loan principal.";
-    } else if (rawStr.includes("incorrect repayment amount")) {
-      specificRevertReason =
-        "Contract Revert: The ETH amount sent does not match the required repayment amount.";
-    } else if (rawStr.includes("only borrower can withdraw")) {
-      specificRevertReason =
-        "Contract Revert: Only the borrower who requested this loan is authorized to withdraw the funds.";
-    } else if (rawStr.includes("loan not funded")) {
-      specificRevertReason =
-        "Contract Revert: This loan has not been funded by a lender yet.";
-    } else if (rawStr.includes("loan not withdrawn")) {
-      specificRevertReason =
-        "Contract Revert: This loan has not been withdrawn by the borrower and cannot be repaid yet.";
-    } else if (rawStr.includes("loan defaulted")) {
-      specificRevertReason =
-        "Contract Revert: This loan has defaulted and is closed to standard actions.";
-    } else if (rawStr.includes("loan does not exist")) {
-      specificRevertReason =
-        "Contract Revert: This loan does not exist on the Sepolia smart contract.";
+      if (rawStr.includes("invalidstate")) {
+        specificRevertReason =
+          "Contract Revert: Loan is in an invalid state for this operation (e.g. already funded, withdrawn, or settled).";
+      } else if (rawStr.includes("borrower cannot fund own loan") || rawStr.includes("borrowercannotfundownloan")) {
+        specificRevertReason =
+          "Contract Revert: Borrowers are not permitted to fund their own loan requests.";
+      } else if (rawStr.includes("deadlinepassed")) {
+        specificRevertReason =
+          "Contract Revert: The funding deadline for this loan has already passed.";
+      } else if (rawStr.includes("borroweronly")) {
+        specificRevertReason =
+          "Contract Revert: Only the borrower who requested this loan is authorized to perform this action.";
+      } else if (
+        rawStr.includes("incorrect eth amount") ||
+        rawStr.includes("incorrect funding amount") ||
+        rawStr.includes("incorrectvalue") ||
+        rawStr.includes("msg.value")
+      ) {
+        specificRevertReason =
+          "Contract Revert: The ETH amount sent does not match the required loan principal.";
+      } else if (rawStr.includes("incorrect repayment amount")) {
+        specificRevertReason =
+          "Contract Revert: The ETH amount sent does not match the required repayment amount.";
+      } else if (rawStr.includes("only borrower can withdraw")) {
+        specificRevertReason =
+          "Contract Revert: Only the borrower who requested this loan is authorized to withdraw the funds.";
+      } else if (rawStr.includes("loan not funded")) {
+        specificRevertReason =
+          "Contract Revert: This loan has not been funded by a lender yet.";
+      } else if (rawStr.includes("loan not withdrawn")) {
+        specificRevertReason =
+          "Contract Revert: This loan has not been withdrawn by the borrower and cannot be repaid yet.";
+      } else if (rawStr.includes("loan defaulted")) {
+        specificRevertReason =
+          "Contract Revert: This loan has defaulted and is closed to standard actions.";
+      } else if (rawStr.includes("loan does not exist") || rawStr.includes("invalidloanid")) {
+        specificRevertReason =
+          "Contract Revert: This loan does not exist on the Sepolia smart contract.";
+      } else if (rawStr.includes("missing revert data")) {
+        specificRevertReason =
+          "Contract Revert: The transaction reverted during gas estimation. The loan is likely already funded, withdrawn, or no longer in an open 'Requested' state.";
+      }
     }
 
     return {
@@ -233,7 +297,7 @@ export function parseContractError(err: unknown, context?: ErrorContext): Parsed
       userMessage: specificRevertReason,
       technicalDetails,
       actionHint: {
-        label: "Verify your connected wallet and loan status, then try again.",
+        label: "Refresh marketplace data and verify the current loan state on Sepolia.",
       },
       isUserRejection: false,
     };

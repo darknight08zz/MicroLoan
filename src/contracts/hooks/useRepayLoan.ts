@@ -115,7 +115,33 @@ export function useRepayLoan(): RepayLoanResult {
         return { success: false, error: msg };
       }
 
-      // 8. Execution Lifecycle: Waiting for MetaMask
+      // 8. On-Chain Live Pre-Check: Verify current status directly on Sepolia
+      try {
+        const contract = getSignerMicroLoanContract(signer);
+        if (typeof contract.loans === "function") {
+          const liveLoan = await contract.loans(loan.id);
+          const liveStatusCode = Number(liveLoan.status);
+          if (liveStatusCode !== 2) { // 2 = Withdrawn
+            const statusNames = ["Requested", "Funded", "Withdrawn", "Repaid", "Defaulted"];
+            const currentStatusName = statusNames[liveStatusCode] || `Status #${liveStatusCode}`;
+            const msg = `Cannot repay Loan #${loan.id}: This loan is currently in "${currentStatusName}" state on-chain. Only withdrawn loans can be repaid.`;
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+
+          if (liveLoan.borrower && liveLoan.borrower.toLowerCase() !== account.toLowerCase()) {
+            const msg = "Only the registered borrower of this loan is authorized to repay.";
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+        }
+      } catch (preCheckErr) {
+        console.warn("[useRepayLoan] Note: Live on-chain pre-check could not be completed, proceeding to transaction:", preCheckErr);
+      }
+
+      // 9. Execution Lifecycle: Waiting for MetaMask
       setActiveLoanId(loan.id);
       setStatus("waiting_metamask");
       setErrorMessage(null);
@@ -127,11 +153,9 @@ export function useRepayLoan(): RepayLoanResult {
         const contract = getSignerMicroLoanContract(signer);
 
         // Call repay(loanId) sending exactly loan.repaymentRaw as msg.value
-        // Supports repay(loanId) with fallback to repayLoan(loanId)
-        const tx =
-          typeof contract.repay === "function"
-            ? await contract.repay(loan.id, { value: loan.repaymentRaw })
-            : await contract.repayLoan(loan.id, { value: loan.repaymentRaw });
+        const tx = typeof contract.repay === "function"
+          ? await contract.repay(loan.id, { value: loan.repaymentRaw })
+          : await (contract as unknown as { repayLoan: (id: number, opts: { value: bigint }) => Promise<{ hash: string; wait: (n: number) => Promise<{ status: number }> }> }).repayLoan(loan.id, { value: loan.repaymentRaw });
 
         const hash = tx.hash as string;
         setTxHash(hash);

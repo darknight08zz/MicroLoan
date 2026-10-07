@@ -113,7 +113,33 @@ export function useWithdrawLoan(): WithdrawLoanResult {
         return { success: false, error: msg };
       }
 
-      // 7. Execution Lifecycle: Waiting for MetaMask
+      // 7. On-Chain Live Pre-Check: Verify current status directly on Sepolia
+      try {
+        const contract = getSignerMicroLoanContract(signer);
+        if (typeof contract.loans === "function") {
+          const liveLoan = await contract.loans(loan.id);
+          const liveStatusCode = Number(liveLoan.status);
+          if (liveStatusCode !== 1) { // 1 = Funded
+            const statusNames = ["Requested", "Funded", "Withdrawn", "Repaid", "Defaulted"];
+            const currentStatusName = statusNames[liveStatusCode] || `Status #${liveStatusCode}`;
+            const msg = `Cannot withdraw Loan #${loan.id}: This loan is currently in "${currentStatusName}" state on-chain. Only funded loans can be withdrawn.`;
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+
+          if (liveLoan.borrower && liveLoan.borrower.toLowerCase() !== account.toLowerCase()) {
+            const msg = "Only the registered borrower of this loan is authorized to withdraw funds.";
+            setStatus("failed");
+            setErrorMessage(msg);
+            return { success: false, error: msg };
+          }
+        }
+      } catch (preCheckErr) {
+        console.warn("[useWithdrawLoan] Note: Live on-chain pre-check could not be completed, proceeding to transaction:", preCheckErr);
+      }
+
+      // 8. Execution Lifecycle: Waiting for MetaMask
       setActiveLoanId(loan.id);
       setStatus("waiting_metamask");
       setErrorMessage(null);
@@ -123,11 +149,10 @@ export function useWithdrawLoan(): WithdrawLoanResult {
       try {
         const contract = getSignerMicroLoanContract(signer);
 
-        // Call withdraw(loanId) with fallback to withdrawToBorrower(loanId)
-        const tx =
-          typeof contract.withdraw === "function"
-            ? await contract.withdraw(loan.id)
-            : await contract.withdrawToBorrower(loan.id);
+        // Call withdraw(loanId) directly
+        const tx = typeof contract.withdraw === "function"
+          ? await contract.withdraw(loan.id)
+          : await (contract as unknown as { withdrawToBorrower: (id: number) => Promise<{ hash: string; wait: (n: number) => Promise<{ status: number }> }> }).withdrawToBorrower(loan.id);
 
         const hash = tx.hash as string;
         setTxHash(hash);

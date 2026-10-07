@@ -1,5 +1,94 @@
 [
   {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
+    ],
+    "name": "InvalidLoanId",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "principal", "type": "uint256" }
+    ],
+    "name": "InvalidPrincipal",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "principal", "type": "uint256" },
+      { "internalType": "uint256", "name": "repayment", "type": "uint256" }
+    ],
+    "name": "RepaymentBelowPrincipal",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "dueDate", "type": "uint256" },
+      { "internalType": "uint256", "name": "nowTimestamp", "type": "uint256" }
+    ],
+    "name": "InvalidDueDate",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" },
+      { "internalType": "uint8", "name": "currentStatus", "type": "uint8" }
+    ],
+    "name": "InvalidState",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
+    ],
+    "name": "BorrowerOnly",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
+    ],
+    "name": "BorrowerCannotFundOwnLoan",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "expected", "type": "uint256" },
+      { "internalType": "uint256", "name": "actual", "type": "uint256" }
+    ],
+    "name": "IncorrectValue",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" },
+      { "internalType": "uint256", "name": "dueDate", "type": "uint256" }
+    ],
+    "name": "DeadlinePassed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" },
+      { "internalType": "uint256", "name": "dueDate", "type": "uint256" }
+    ],
+    "name": "DeadlineNotPassed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "ETHTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyDetected",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "uint256", "name": "loanId", "type": "uint256" },
@@ -129,15 +218,6 @@
     "inputs": [
       { "internalType": "uint256", "name": "loanId", "type": "uint256" }
     ],
-    "name": "fundLoan",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
-    ],
     "name": "withdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -147,25 +227,7 @@
     "inputs": [
       { "internalType": "uint256", "name": "loanId", "type": "uint256" }
     ],
-    "name": "withdrawToBorrower",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
-    ],
     "name": "repay",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
-    ],
-    "name": "repayLoan",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"

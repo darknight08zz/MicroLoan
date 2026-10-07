@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useWallet } from "@/context/WalletContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 export type Role = "borrower" | "lender";
 
@@ -46,7 +47,7 @@ export function MetaMaskIcon({ className = "w-4 h-4" }: { className?: string }) 
   );
 }
 
-export function MicroLoanBrandMark({ className = "w-5 h-5" }: { className?: string }) {
+export function MicroLoanBrandMark({ className = "w-5 h-5 text-[#111111]" }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -55,9 +56,9 @@ export function MicroLoanBrandMark({ className = "w-5 h-5" }: { className?: stri
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <rect x="2" y="2" width="20" height="20" rx="6" stroke="#111111" strokeWidth="2" />
-      <path d="M7 15L12 9L17 15" stroke="#111111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 9V17" stroke="#111111" strokeWidth="2" strokeLinecap="round" />
+      <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2" />
+      <path d="M7 15L12 9L17 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 9V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -239,9 +240,9 @@ export function Navbar({
             </div>
           )}
 
-          {/* Minimal Monochromatic Wallet State */}
+          <ThemeToggle />
+
           {!account ? (
-            /* Disconnected: [ Connect Wallet ] */
             <button
               type="button"
               onClick={connectWallet}

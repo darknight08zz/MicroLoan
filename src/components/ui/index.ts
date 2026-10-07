@@ -12,3 +12,4 @@ export * from "./TransactionBanner";
 export * from "./DirectionalSlideView";
 export * from "./Modal";
 export * from "./Footer";
+export * from "./ThemeToggle";
