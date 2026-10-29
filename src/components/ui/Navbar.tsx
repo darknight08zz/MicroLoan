@@ -10,8 +10,8 @@ export type Role = "borrower" | "lender";
 export interface NavbarProps {
   activeRole: Role;
   onRoleChange: (role: Role) => void;
-  activeNav?: "home" | "marketplace" | "borrow" | "lender" | "dashboard";
-  onNavClick?: (nav: "home" | "marketplace" | "borrow" | "lender" | "dashboard") => void;
+  activeNav?: "home" | "borrow" | "lender" | "dashboard";
+  onNavClick?: (nav: "home" | "borrow" | "lender" | "dashboard") => void;
 }
 
 export function MetaMaskIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -64,9 +64,8 @@ export function MicroLoanBrandMark({ className = "w-5 h-5 text-[#111111]" }: { c
 }
 
 export function Navbar({
-  activeRole,
   onRoleChange,
-  activeNav,
+  activeNav = "home",
   onNavClick,
 }: NavbarProps) {
   const {
@@ -81,13 +80,23 @@ export function Navbar({
     disconnectWallet,
     clearAccountChangeNotice,
     networkName,
+    balance,
   } = useWallet();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -109,202 +118,154 @@ export function Navbar({
     }
   };
 
+  const navItems = [
+    { id: "home", label: "Home", action: () => onNavClick && onNavClick("home") },
+    {
+      id: "borrow",
+      label: "Borrow",
+      action: () => {
+        onRoleChange("borrower");
+        if (onNavClick) onNavClick("borrow");
+      },
+    },
+    {
+      id: "lender",
+      label: "Lend",
+      action: () => {
+        onRoleChange("lender");
+        if (onNavClick) onNavClick("lender");
+      },
+    },
+    { id: "dashboard", label: "Dashboard", action: () => onNavClick && onNavClick("dashboard") },
+  ];
+
   return (
-    <header className="w-full bg-[#ffffff]/95 backdrop-blur-md border-b border-[#e5e5e5] sticky top-0 z-40 transition-colors">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* LEFT: Monochromatic Minimal Brand */}
-        <div className="flex items-center gap-6 shrink-0">
-          <button
-            type="button"
-            onClick={() => onNavClick ? onNavClick("home") : onRoleChange("borrower")}
-            className="flex items-center gap-2.5 focus:outline-none cursor-pointer group text-left"
-          >
+    <header
+      className={`sticky top-0 left-0 w-full z-40 transition-all duration-300 ${
+        isScrolled
+          ? "h-[68px] backdrop-blur-xl border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/90 shadow-xs"
+          : "h-[76px] sm:h-[80px] backdrop-blur-md bg-[var(--bg-primary)]/80 border-b border-[var(--border-subtle)]/70"
+      }`}
+    >
+      <div className="max-w-[1400px] mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => (onNavClick ? onNavClick("home") : onRoleChange("borrower"))}
+          className="group flex items-center gap-2.5 focus:outline-none cursor-pointer shrink-0"
+        >
+          <div className="w-8 h-8 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-center justify-center p-1 shadow-xs transition-transform group-hover:scale-105">
             <Image
               src="/logo.png"
               alt="MicroLoan Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8 rounded-[8px] object-contain transition-transform group-hover:scale-105"
+              width={22}
+              height={22}
+              className="w-5 h-5 rounded-full object-contain"
               priority
             />
-            <span className="text-base font-bold tracking-tight text-[#111111]">
-              MicroLoan
-            </span>
-          </button>
+          </div>
+          <span className="font-mono text-sm sm:text-base font-bold tracking-[0.16em] text-[var(--text-highlight)] uppercase whitespace-nowrap transition-colors group-hover:text-[var(--text-secondary)]">
+            MicroLoan
+          </span>
+        </button>
 
-          {/* Optional top-level navigation triggers */}
-          {onNavClick && (
-            <nav className="hidden md:flex items-center gap-1 text-xs font-medium text-[#666666]">
-              <button
-                type="button"
-                onClick={() => onNavClick("home")}
-                className={`px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer ${
-                  activeNav === "home" ? "text-[#111111] bg-[#f5f5f5] font-semibold" : "hover:text-[#111111] hover:bg-[#fafafa]"
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavClick("marketplace")}
-                className={`px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer ${
-                  activeNav === "marketplace" ? "text-[#111111] bg-[#f5f5f5] font-semibold" : "hover:text-[#111111] hover:bg-[#fafafa]"
-                }`}
-              >
-                Marketplace
-              </button>
-            </nav>
-          )}
-        </div>
+        {onNavClick && (
+          <nav className="hidden lg:flex items-center gap-1 bg-[var(--bg-secondary)]/90 backdrop-blur-md px-2 py-1.5 rounded-full border border-[var(--border-subtle)] shadow-xs">
+            {navItems.map((item) => {
+              const isActive = activeNav === item.id;
 
-        {/* CENTER: Clean Role Selector (Borrower | Lender) */}
-        <nav
-          className="flex items-center gap-1 sm:gap-2 h-full relative"
-          aria-label="User Role Selection"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (onNavClick) onNavClick("borrow");
-              onRoleChange("borrower");
-            }}
-            className={`relative h-full flex items-center px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-              activeRole === "borrower"
-                ? "text-[#111111]"
-                : "text-[#666666] hover:text-[#111111]"
-            }`}
-          >
-            <span>Borrow</span>
-            {activeRole === "borrower" && (
-              <span
-                className="absolute bottom-0 left-2 right-2 sm:left-3 sm:right-3 h-[2px] bg-[#111111] transition-all"
-                aria-hidden="true"
-              />
-            )}
-          </button>
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={item.action}
+                  className={`relative px-4 py-1.5 rounded-full text-[11px] font-mono tracking-[0.14em] uppercase transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? "bg-[var(--bg-card)] border border-[var(--grayscale-accent-border)] shadow-xs font-semibold text-[var(--text-highlight)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-card)]/50 font-normal border border-transparent"
+                  }`}
+                >
+                  <span className="relative z-10">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
-          <button
-            type="button"
-            onClick={() => {
-              if (onNavClick) onNavClick("lender");
-              onRoleChange("lender");
-            }}
-            className={`relative h-full flex items-center px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-              activeRole === "lender"
-                ? "text-[#111111]"
-                : "text-[#666666] hover:text-[#111111]"
-            }`}
-          >
-            <span>Lend</span>
-            {activeRole === "lender" && (
-              <span
-                className="absolute bottom-0 left-2 right-2 sm:left-3 sm:right-3 h-[2px] bg-[#111111] transition-all"
-                aria-hidden="true"
-              />
-            )}
-          </button>
-        </nav>
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
 
-        {/* RIGHT: Minimal Sepolia Status Pill + Monochromatic Wallet Button */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative" ref={dropdownRef}>
-          {/* Sepolia Status Indicator */}
-          {!account || isSepolia ? (
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fafafa] border border-[#e5e5e5] text-xs text-[#4b5563] font-medium"
-              title={account ? "Connected Network: Ethereum Sepolia" : "Network: Ethereum Sepolia"}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#16803c] shrink-0"
-                aria-hidden="true"
-              />
-              <span className="hidden sm:inline">Sepolia</span>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fefce8] border border-[#fef08a] text-xs text-[#a16207] font-medium"
-              title={`Connected to ${networkName}. Please switch to Sepolia.`}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#a16207] shrink-0"
-                aria-hidden="true"
-              />
-              <span className="font-medium hidden sm:inline">Wrong Net</span>
-              <button
-                type="button"
-                onClick={() => switchToSepolia()}
-                disabled={isSwitchingNetwork}
-                className="bg-[#111111] hover:bg-[#2a2a2a] text-[#ffffff] px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer"
-              >
-                {isSwitchingNetwork ? "..." : "Switch"}
-              </button>
-            </div>
-          )}
-
-          <ThemeToggle />
+          <ThemeToggle className="rounded-full w-8 h-8 p-1.5 shadow-xs" />
 
           {!account ? (
             <button
               type="button"
               onClick={connectWallet}
               disabled={isConnecting}
-              className="bg-[#111111] hover:bg-[#2a2a2a] active:bg-[#000000] text-[#ffffff] font-medium text-xs sm:text-sm rounded-[8px] px-3.5 sm:px-4 py-1.5 sm:py-2 transition-all btn-interactive cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              className="rounded-full bg-[#111111] hover:bg-[#2a2a2a] text-[#ffffff] font-mono text-[11px] tracking-[0.12em] uppercase px-4 py-2 transition-all shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer btn-interactive"
             >
-              <MetaMaskIcon className="w-4 h-4 shrink-0" />
-              <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
+              <MetaMaskIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>{isConnecting ? "Connecting..." : "Connect"}</span>
             </button>
           ) : (
-            /* Connected: [ Fox 0x82...91A ] with hairline border */
-            <div className="relative">
+            <div ref={dropdownRef} className="relative">
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 bg-[#ffffff] hover:bg-[#f5f5f5] border border-[#d9d9d9] text-[#111111] rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                className="flex items-center gap-2 bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-highlight)] rounded-full px-3.5 py-1.5 text-xs font-mono shadow-xs transition-colors cursor-pointer"
                 title={account}
                 aria-expanded={dropdownOpen}
                 aria-haspopup="true"
               >
-                <MetaMaskIcon className="w-4 h-4 shrink-0" />
-                <span className="font-mono">{shortAddress}</span>
+                {balance && (
+                  <>
+                    <span className="font-mono hidden sm:inline text-[var(--text-muted)] font-normal">
+                      {balance}
+                    </span>
+                    <span className="hidden sm:inline w-[1px] h-3 bg-[var(--border-subtle)]" />
+                  </>
+                )}
+                <MetaMaskIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-mono font-medium">{shortAddress}</span>
                 <svg
-                  className={`w-3 h-3 text-[#666666] transition-transform ${
+                  className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${
                     dropdownOpen ? "rotate-180" : ""
                   }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* Connected Wallet Minimal Dropdown */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#ffffff] border border-[#e5e5e5] rounded-[12px] shadow-[0_6px_20px_rgba(0,0,0,0.08)] p-3 z-50 text-[#111111] view-transition">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#666666] mb-1.5">
-                    Account
+                <div className="absolute right-0 mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-[14px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-3.5 z-50 text-[var(--text-highlight)] view-transition">
+                  <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                    Account Details
                   </div>
-                  <div className="p-2 bg-[#fafafa] rounded-[8px] border border-[#e5e5e5] flex items-center justify-between mb-3">
-                    <span className="font-mono text-xs text-[#111111] truncate max-w-[160px]">
+                  <div className="p-2.5 bg-[var(--bg-secondary)] rounded-[10px] border border-[var(--border-subtle)] flex items-center justify-between mb-2.5">
+                    <span className="font-mono text-xs text-[var(--text-primary)] truncate max-w-[150px]">
                       {account}
                     </span>
                     <button
                       type="button"
                       onClick={handleCopyAddress}
-                      className="text-xs text-[#111111] hover:underline font-medium px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                      className="text-xs font-mono text-[var(--text-highlight)] hover:underline font-medium px-1.5 py-0.5 rounded cursor-pointer"
                       title="Copy full address"
                     >
                       {copied ? "Copied" : "Copy"}
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1.5 border-b border-[#e5e5e5] mb-2.5">
-                    <span className="text-[#666666]">Network</span>
-                    <span className="text-[#111111] font-medium flex items-center gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono py-1.5 border-b border-[var(--border-subtle)] mb-2">
+                    <span className="text-[var(--text-muted)]">Balance</span>
+                    <span className="font-medium text-[var(--text-highlight)]">
+                      {balance || "0.0000 ETH"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-mono py-1.5 border-b border-[var(--border-subtle)] mb-3">
+                    <span className="text-[var(--text-muted)]">Network</span>
+                    <span className="font-medium text-[var(--text-highlight)] flex items-center gap-1.5">
                       <span
                         className={`h-1.5 w-1.5 rounded-full ${
                           isSepolia ? "bg-[#16803c]" : "bg-[#a16207]"
@@ -319,7 +280,7 @@ export function Navbar({
                       type="button"
                       onClick={() => switchToSepolia()}
                       disabled={isSwitchingNetwork}
-                      className="w-full mb-2 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium text-[#ffffff] bg-[#111111] hover:bg-[#2a2a2a] rounded-[8px] transition-colors cursor-pointer"
+                      className="w-full mb-2 flex items-center justify-center py-1.5 px-3 text-xs font-mono font-medium text-[#ffffff] bg-[#111111] hover:bg-[#2a2a2a] rounded-full transition-colors cursor-pointer"
                     >
                       <span>Switch to Sepolia</span>
                     </button>
@@ -331,7 +292,7 @@ export function Navbar({
                       disconnectWallet();
                       setDropdownOpen(false);
                     }}
-                    className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium text-[#b42318] hover:bg-[#fef2f2] border border-[#fecaca] rounded-[8px] transition-colors cursor-pointer"
+                    className="w-full mt-1 flex items-center justify-center py-1.5 px-3 text-xs font-mono font-medium text-[#b42318] hover:bg-[#fef2f2] border border-[#fecaca] rounded-full transition-colors cursor-pointer"
                   >
                     <span>Disconnect</span>
                   </button>
@@ -339,17 +300,70 @@ export function Navbar({
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            aria-label="Toggle Navigation Menu"
+            className="lg:hidden p-2 text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <div className="flex flex-col gap-1 w-4 items-center justify-center">
+              <span
+                className={`w-4 h-[1.5px] bg-[var(--text-primary)] rounded-full transition-transform duration-200 ${
+                  isMobileMenuOpen ? "rotate-45 translate-y-[5.5px]" : ""
+                }`}
+              />
+              <span
+                className={`w-4 h-[1.5px] bg-[var(--text-primary)] rounded-full transition-opacity duration-200 ${
+                  isMobileMenuOpen ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`w-4 h-[1.5px] bg-[var(--text-primary)] rounded-full transition-transform duration-200 ${
+                  isMobileMenuOpen ? "-rotate-45 -translate-y-[5.5px]" : ""
+                }`}
+              />
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Account Changed Notice */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] p-5 space-y-4 view-transition">
+          <div className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const isActive = activeNav === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    item.action();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`text-left px-3.5 py-2.5 rounded-[10px] text-xs font-mono uppercase tracking-[0.14em] transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-[var(--bg-secondary)] text-[var(--text-highlight)] font-semibold"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+        </div>
+      )}
+
       {accountChangeNotice && (
-        <div className="max-w-[1400px] mx-auto px-4 py-2 bg-[#fafafa] border-b border-[#e5e5e5] text-[#111111] text-xs flex items-center justify-between">
-          <span className="text-[#666666]">{accountChangeNotice}</span>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2 bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] text-[var(--text-highlight)] text-xs flex items-center justify-between">
+          <span className="text-[var(--text-muted)] font-mono">{accountChangeNotice}</span>
           <button
             type="button"
             onClick={clearAccountChangeNotice}
-            className="text-xs text-[#111111] font-semibold hover:underline ml-2 cursor-pointer"
+            className="text-xs font-mono text-[var(--text-highlight)] font-semibold hover:underline ml-2 cursor-pointer"
           >
             Dismiss
           </button>

@@ -80,16 +80,7 @@ export function formatEth(
   return `${formatted} ETH`;
 }
 
-/**
- * Computes status-specific repayment information and visual prominence for borrower & lender tables.
- *
- * Requirements:
- * - Withdrawn: Active loan where repayment is owed. Prominent display for borrower.
- * - Funded: Principal funded, scheduled repayment amount displayed.
- * - Repaid: Final repayment settled.
- * - Defaulted: Repayment unpaid / defaulted.
- * - Requested: Proposed repayment terms.
- */
+
 export function getRepaymentDisplayInfo(
   loan: Loan,
   context: "borrower" | "lender" = "borrower"
@@ -142,13 +133,23 @@ export function getRepaymentDisplayInfo(
       };
 
     case "Defaulted":
-      // Defaulted: Deadline passed without full repayment
+      // Defaulted: Borrower withdrew principal but deadline passed without full repayment
       return {
         formatted,
         subtext: "Unpaid / Defaulted",
         isProminent: false,
         badgeLabel: "Overdue",
         badgeColorClass: "bg-rose-50 text-rose-700 border-rose-200",
+      };
+
+    case "Cancelled":
+      // Cancelled: Expired before borrower received funds (unfunded or unwithdrawn)
+      return {
+        formatted,
+        subtext: "Cancelled / Expired",
+        isProminent: false,
+        badgeLabel: "Cancelled",
+        badgeColorClass: "bg-slate-100 text-slate-600 border-slate-200",
       };
 
     case "Requested":
@@ -161,3 +162,66 @@ export function getRepaymentDisplayInfo(
       };
   }
 }
+
+
+export function shortenAddress(address?: string | null): string {
+  if (!address || address === "-") return "-";
+  if (address.length < 10) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+
+export function calculateInterestAmount(
+  principal: number | string,
+  ratePercent: number | string
+): string {
+  const p = typeof principal === "number" ? principal : parseFloat(principal);
+  const r = typeof ratePercent === "number" ? ratePercent : parseFloat(ratePercent);
+  if (isNaN(p) || isNaN(r) || p <= 0 || r < 0) return "0";
+  const interest = p * (r / 100);
+  return interest.toFixed(6).replace(/\.?0+$/, "");
+}
+
+/**
+ * Calculates total repayment amount in ETH given principal and rate percentage.
+ * Example: principal = 0.5, ratePercent = 10 -> returns "0.55"
+ */
+export function calculateRepayment(
+  principal: number | string,
+  ratePercent: number | string
+): string {
+  const p = typeof principal === "number" ? principal : parseFloat(principal);
+  const r = typeof ratePercent === "number" ? ratePercent : parseFloat(ratePercent);
+  if (isNaN(p) || p <= 0) return "";
+  if (isNaN(r) || r < 0) return p.toFixed(6).replace(/\.?0+$/, "");
+  const repayment = p * (1 + r / 100);
+  return repayment.toFixed(6).replace(/\.?0+$/, "");
+}
+
+/**
+ * Calculates interest rate percentage given principal and total repayment.
+ * Example: principal = 0.5, repayment = 0.55 -> returns 10.0
+ */
+export function calculateInterestRate(
+  principal: number | string,
+  repayment: number | string
+): number {
+  const p = typeof principal === "number" ? principal : parseFloat(principal);
+  const r = typeof repayment === "number" ? repayment : parseFloat(repayment);
+  if (isNaN(p) || isNaN(r) || p <= 0 || r < p) return 0;
+  return Number((((r - p) / p) * 100).toFixed(2));
+}
+
+/**
+ * Calculates Annualized Percentage Rate (APR) given rate and duration in days.
+ * Example: rate = 10%, duration = 14 days -> returns 260.7%
+ */
+export function calculateApr(
+  ratePercent: number | string,
+  durationDays: number
+): number | null {
+  const r = typeof ratePercent === "number" ? ratePercent : parseFloat(ratePercent);
+  if (isNaN(r) || r <= 0 || durationDays <= 0) return null;
+  return Number((r * (365 / durationDays)).toFixed(1));
+}
+

@@ -143,6 +143,17 @@
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "loanId", "type": "uint256" },
+      { "indexed": false, "internalType": "address", "name": "caller", "type": "address" },
+      { "indexed": true, "internalType": "uint8", "name": "previousStatus", "type": "uint8" },
+      { "indexed": false, "internalType": "uint256", "name": "principalRefunded", "type": "uint256" }
+    ],
+    "name": "LoanExpired",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "nextLoanId",
     "outputs": [
@@ -237,6 +248,15 @@
       { "internalType": "uint256", "name": "loanId", "type": "uint256" }
     ],
     "name": "markDefault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "loanId", "type": "uint256" }
+    ],
+    "name": "markExpired",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

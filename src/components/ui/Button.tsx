@@ -32,13 +32,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // Strict monochromatic variant styles
     const variantStyles = {
       primary:
-        "bg-[#111111] text-[#ffffff] hover:bg-[#2a2a2a] active:bg-[#000000] border border-transparent shadow-none",
+        "bg-[#111111] dark:bg-[#F4F4F5] text-[#ffffff] dark:text-[#121316] hover:bg-[#2a2a2a] dark:hover:bg-[#E4E4E7] active:bg-[#000000] border border-transparent shadow-none",
       secondary:
-        "bg-[#ffffff] text-[#111111] border border-[#d9d9d9] hover:bg-[#f5f5f5] active:bg-[#eeeeee]",
+        "bg-[#ffffff] dark:bg-[#262932] text-[#111111] dark:text-[#F4F4F5] border border-[#d9d9d9] dark:border-white/[0.12] hover:bg-[#f5f5f5] dark:hover:bg-[#343a46] active:bg-[#eeeeee]",
       outline:
-        "bg-transparent text-[#111111] border border-[#e5e5e5] hover:bg-[#fafafa] active:bg-[#f5f5f5]",
+        "bg-transparent text-[#111111] dark:text-[#F4F4F5] border border-[#e5e5e5] dark:border-white/[0.12] hover:bg-[#fafafa] dark:hover:bg-white/[0.05] active:bg-[#f5f5f5]",
       ghost:
-        "bg-transparent text-[#666666] hover:text-[#111111] hover:bg-[#f5f5f5] active:bg-[#eeeeee]",
+        "bg-transparent text-[#666666] dark:text-[#A1A1AA] hover:text-[#111111] dark:hover:text-[#F4F4F5] hover:bg-[#f5f5f5] dark:hover:bg-white/[0.05] active:bg-[#eeeeee]",
       danger:
         "bg-[#b42318] text-[#ffffff] hover:bg-[#911d13] active:bg-[#7a1810] border border-transparent",
     };
@@ -47,7 +47,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const sizeStyles = {
       sm: "px-3 py-1.5 text-xs rounded-[8px] gap-1.5",
       md: "px-4 py-2 text-sm rounded-[10px] gap-2",
-      lg: "px-6 py-3 text-base rounded-[10px] gap-2.5 font-semibold",
+      lg: "px-6 py-3 text-base rounded-[14px] gap-2.5 font-semibold",
     };
 
     const widthStyle = fullWidth ? "w-full" : "";

@@ -110,14 +110,18 @@ export function useCreateLoan(): CreateLoanResult {
         return { success: false, error: msg };
       }
 
-      const parts = dueDateStr.split("-").map(Number);
-      const [y, m, d] = parts;
-      const dueDateObj = new Date(y, m - 1, d, 23, 59, 59, 999);
-      const targetTimestamp = Math.floor(dueDateObj.getTime() / 1000);
+      const targetDate = new Date(dueDateStr);
+      let targetTimestamp = Math.floor(targetDate.getTime() / 1000);
+      if (isNaN(targetTimestamp) && dueDateStr.includes("-")) {
+        const parts = dueDateStr.split("-").map(Number);
+        if (parts.length === 3) {
+          targetTimestamp = Math.floor(new Date(parts[0], parts[1] - 1, parts[2], 23, 45, 0).getTime() / 1000);
+        }
+      }
       const nowTimestamp = Math.floor(Date.now() / 1000);
       const durationSeconds = BigInt(Math.max(1, targetTimestamp - nowTimestamp));
 
-      // 4. Execution Lifecycle: Waiting for MetaMask
+      
       setStatus("waiting_metamask");
       setErrorMessage(null);
       setTechnicalDetails(null);
@@ -128,7 +132,7 @@ export function useCreateLoan(): CreateLoanResult {
       try {
         const contract = getSignerMicroLoanContract(signer);
 
-        // Call requestLoan(amount, repayment, duration)
+        
         const tx = await contract.requestLoan(
           principalWei,
           repaymentWei,

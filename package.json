@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "keeper": "node --env-file=.env.local scripts/keeper.mjs"
   },
   "dependencies": {
     "ethers": "^6.17.0",

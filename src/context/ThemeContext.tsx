@@ -3,9 +3,9 @@
 import React, {
   createContext,
   useContext,
-  useState,
-  useEffect,
   useCallback,
+  useSyncExternalStore,
+  useEffect,
   ReactNode,
 } from "react";
 
@@ -14,30 +14,48 @@ export type Theme = "dark" | "light";
 export interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
+  mounted: boolean;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
 const THEME_STORAGE_KEY = "microloan_theme";
-const DEFAULT_THEME: Theme = "dark";
+const DEFAULT_THEME: Theme = "light";
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Initialize state with default "dark" or whatever is in localStorage
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(THEME_STORAGE_KEY);
-        if (stored === "light" || stored === "dark") {
-          return stored;
-        }
-      } catch {
-        // Fallback to default
-      }
-    }
+const emptySubscribe = () => () => {};
+
+const themeListeners = new Set<() => void>();
+function subscribeTheme(listener: () => void) {
+  themeListeners.add(listener);
+  return () => {
+    themeListeners.delete(listener);
+  };
+}
+function notifyThemeListeners() {
+  for (const listener of themeListeners) {
+    listener();
+  }
+}
+
+function getClientThemeSnapshot(): Theme {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "dark" ? "dark" : "light";
+  } catch {
     return DEFAULT_THEME;
-  });
+  }
+}
+
+function getServerThemeSnapshot(): Theme {
+  return DEFAULT_THEME;
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const theme = useSyncExternalStore(subscribeTheme, getClientThemeSnapshot, getServerThemeSnapshot);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   // Apply theme class to document root element
   const applyTheme = useCallback((newTheme: Theme) => {
@@ -55,13 +73,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Update theme and persist to localStorage
   const setTheme = useCallback(
     (newTheme: Theme) => {
-      setThemeState(newTheme);
-      applyTheme(newTheme);
       try {
         localStorage.setItem(THEME_STORAGE_KEY, newTheme);
       } catch (err) {
         console.warn("Could not save theme preference:", err);
       }
+      applyTheme(newTheme);
+      notifyThemeListeners();
     },
     [applyTheme]
   );
@@ -70,16 +88,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
-  // Initial sync on mount
+  // Initial sync on mount to ensure DOM attribute matches
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme, applyTheme]);
+    applyTheme(getClientThemeSnapshot());
+  }, [applyTheme]);
 
   return (
     <ThemeContext.Provider
       value={{
         theme,
         isDark: theme === "dark",
+        mounted,
         toggleTheme,
         setTheme,
       }}

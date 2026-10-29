@@ -8,3 +8,4 @@ export * from "./hooks/useCreateLoan";
 export * from "./hooks/useWithdrawLoan";
 export * from "./hooks/useRepayLoan";
 export * from "./hooks/useFundLoan";
+export * from "./hooks/useMarkDefault";

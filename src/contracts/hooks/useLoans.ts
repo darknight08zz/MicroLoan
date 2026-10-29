@@ -4,54 +4,28 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { formatEther, ZeroAddress } from "ethers";
 import { getReadOnlyMicroLoanContract } from "../microloan";
 import { isContractConfigured, getMicroLoanContractAddress } from "../config";
-import { Loan, LoanStatus, LoanStatusMap } from "@/types/loan";
-import { parseContractError, formatDueDate } from "@/utils";
+import { Loan } from "@/types/loan";
+import { parseContractError, formatDueDate, resolveLoanStatus } from "@/utils";
 import { usePolling } from "./usePolling";
 
 export interface UseLoansOptions {
-  /**
-   * Interval in milliseconds between auto-refresh polls.
-   * Defaults to 10,000 ms (10 seconds).
-   * Set to 0 to disable polling.
-   */
   pollIntervalMs?: number;
-
-  /**
-   * Whether auto-refresh polling is enabled.
-   * Defaults to true.
-   */
   enabled?: boolean;
-
-  /**
-   * Whether to pause polling when the browser tab is hidden.
-   * Defaults to true.
-   */
   pauseOnHidden?: boolean;
 }
 
 export interface UseLoansResult {
   loans: Loan[];
   loanCount: number;
-  /** True only during initial fetch before any data has loaded */
   isLoading: boolean;
-  /** True when a background auto-refresh or manual refetch is actively in flight */
   isRefreshing: boolean;
-  /** Timestamp of the last successful on-chain sync */
   lastUpdated: Date | null;
-  /** Initial read error message (if initial fetch failed) */
   error: string | null;
-  /** Initial read error technical details */
   errorDetails: string | null;
-  /** Subtle warning if a background refresh failed (previous data is preserved) */
   refreshWarning: string | null;
-  /** Trigger an immediate fresh read and restart the 10-second polling timer */
   refetch: () => Promise<void>;
 }
 
-/**
- * Compares two loan arrays to determine if on-chain data has meaningfully changed.
- * Avoids unnecessary re-renders when polling returns identical contract data.
- */
 function areLoansEqual(prev: Loan[], next: Loan[]): boolean {
   if (prev.length !== next.length) return false;
   for (let i = 0; i < prev.length; i++) {
@@ -142,6 +116,7 @@ export function useLoans(options: UseLoansOptions = {}): UseLoansResult {
         return;
       }
 
+      // Determine which loans were ever withdrawn by the borrower via LoanWithdrawn events
       // Fetch all loans in parallel
       const loanPromises: Promise<Loan | null>[] = [];
       const startIdx = isZeroIndexed ? 0 : 1;
@@ -169,9 +144,30 @@ export function useLoans(options: UseLoansOptions = {}): UseLoansResult {
               const statusCode = Number(res.status);
 
               const formattedDate = formatDueDate(dueDateRaw);
+              const hasLender = Boolean(lender && lender !== ZeroAddress && lender !== "-");
 
-              // Smart contract alone determines status
-              const resolvedStatus: LoanStatus = LoanStatusMap[statusCode] || "Requested";
+              // Determine whether borrower ever received the capital
+              let wasWithdrawn = statusCode === 2;
+              if (!wasWithdrawn && statusCode === 4 && hasLender) {
+                try {
+                  if (typeof contract.queryFilter === "function" && contract.filters && contract.filters.LoanWithdrawn) {
+                    const filter = contract.filters.LoanWithdrawn(loanId);
+                    // Query within safe 40,000 block range to respect Sepolia RPC limits
+                    const evts = await contract.queryFilter(filter, -40000);
+                    wasWithdrawn = evts.length > 0;
+                  }
+                } catch (err) {
+                  console.warn(`[MicroLoan Contract] Note: Could not query LoanWithdrawn for Loan #${loanId}:`, err);
+                }
+              }
+
+              // Accurately resolve status separating Defaulted (withdrawn & unpaid) vs Cancelled (unwithdrawn/unfunded)
+              const resolvedStatus = resolveLoanStatus({
+                statusCode,
+                dueDateTimestamp: dueDateRaw,
+                wasWithdrawn,
+                lender: hasLender ? lender : undefined,
+              });
 
               return {
                 id: loanId,

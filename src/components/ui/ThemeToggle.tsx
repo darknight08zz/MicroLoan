@@ -8,7 +8,21 @@ export interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = "" }: ThemeToggleProps) {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, mounted } = useTheme();
+
+  if (!mounted) {
+    return (
+      <button
+        type="button"
+        aria-label="Toggle theme"
+        title="Toggle theme"
+        suppressHydrationWarning
+        className={`relative inline-flex items-center justify-center p-2 rounded-[8px] bg-transparent border border-transparent ${className}`}
+      >
+        <div className="w-4 h-4 opacity-0" />
+      </button>
+    );
+  }
 
   return (
     <button
@@ -16,13 +30,14 @@ export function ThemeToggle({ className = "" }: ThemeToggleProps) {
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       title={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className={`relative inline-flex items-center justify-center p-2 rounded-[8px] transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#f5f5f5] ${
+      suppressHydrationWarning
+      className={`relative inline-flex items-center justify-center p-2 rounded-[8px] transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] ${
         isDark
-          ? "bg-[#1e1e1e] hover:bg-[#282828] text-[#f5f5f5] border border-[#2a2a2a]"
-          : "bg-[#ffffff] hover:bg-[#f5f5f5] text-[#111111] border border-[#e5e5e5]"
+          ? "bg-[#18181B] hover:bg-[#27272A] text-[#FAFAFA] border border-[rgba(255,255,255,0.08)]"
+          : "bg-[#FFFFFF] hover:bg-[#F4F4F5] text-[#18181B] border border-[rgba(0,0,0,0.08)]"
       } ${className}`}
     >
-      <span className="sr-only">
+      <span className="sr-only" suppressHydrationWarning>
         {isDark ? "Current theme: Dark. Click to switch to Light." : "Current theme: Light. Click to switch to Dark."}
       </span>
 
@@ -30,8 +45,8 @@ export function ThemeToggle({ className = "" }: ThemeToggleProps) {
       <svg
         className={`w-4 h-4 transition-all duration-300 transform ${
           isDark
-            ? "rotate-0 scale-100 opacity-100 text-[#f5f5f5]"
-            : "rotate-90 scale-0 opacity-0 absolute text-[#111111]"
+            ? "rotate-0 scale-100 opacity-100 text-[#FAFAFA]"
+            : "rotate-90 scale-0 opacity-0 absolute text-[#18181B]"
         }`}
         fill="none"
         stroke="currentColor"
@@ -53,8 +68,8 @@ export function ThemeToggle({ className = "" }: ThemeToggleProps) {
       <svg
         className={`w-4 h-4 transition-all duration-300 transform ${
           !isDark
-            ? "rotate-0 scale-100 opacity-100 text-[#333333]"
-            : "-rotate-90 scale-0 opacity-0 absolute text-[#858A82]"
+            ? "rotate-0 scale-100 opacity-100 text-[#52525B]"
+            : "-rotate-90 scale-0 opacity-0 absolute text-[#71717A]"
         }`}
         fill="none"
         stroke="currentColor"

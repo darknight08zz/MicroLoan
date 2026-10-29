@@ -18,9 +18,12 @@ export interface LoanMarketplaceProps {
   onRepay?: (loan: Loan) => void;
   isRepayingLoan?: (loanId: number) => boolean;
   repayStatus?: TxLifecycleStatus;
+  onMarkDefault?: (loan: Loan) => void;
+  isMarkingDefaultLoan?: (loanId: number) => boolean;
   connectedAccount?: string | null;
   isAnyTxPending?: boolean;
   initialFilter?: string;
+  initialSelectedLoanId?: number | null;
   onRequestLoanClick?: () => void;
 }
 
@@ -33,27 +36,33 @@ export function LoanMarketplace({
   isWithdrawingLoan,
   onRepay,
   isRepayingLoan,
+  onMarkDefault,
+  isMarkingDefaultLoan,
   connectedAccount,
   isAnyTxPending = false,
   initialFilter = "all",
+  initialSelectedLoanId,
   onRequestLoanClick,
 }: LoanMarketplaceProps) {
   const [filterTab, setFilterTab] = useState<string>(initialFilter);
   const [prevInitialFilter, setPrevInitialFilter] = useState<string>(initialFilter);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "dueDate" | "amountHigh" | "amountLow">("newest");
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [sortBy, setSortBy] = useState<"newest" | "dueDate" | "amountHigh" | "amountLow" | "rateHigh" | "rateLow">("newest");
+  const [selectedLoanId, setSelectedLoanId] = useState<number | null>(() => initialSelectedLoanId ?? null);
 
-  // Synchronize state when initialFilter prop changes without cascading effect renders
   if (initialFilter !== prevInitialFilter) {
     setPrevInitialFilter(initialFilter);
     setFilterTab(initialFilter);
   }
 
+  const selectedLoan = useMemo(() => {
+    if (selectedLoanId === null) return null;
+    return loans.find((l) => l.id === selectedLoanId) ?? null;
+  }, [selectedLoanId, loans]);
+
   const filteredLoans = useMemo(() => {
     let result = [...loans];
 
-    // Filter by status tab
     if (filterTab === "requested") {
       result = result.filter((l) => l.status === "Requested");
     } else if (filterTab === "funded") {
@@ -62,9 +71,12 @@ export function LoanMarketplace({
       result = result.filter((l) => l.status === "Withdrawn");
     } else if (filterTab === "repaid") {
       result = result.filter((l) => l.status === "Repaid");
+    } else if (filterTab === "defaulted") {
+      result = result.filter((l) => l.status === "Defaulted");
+    } else if (filterTab === "cancelled") {
+      result = result.filter((l) => l.status === "Cancelled");
     }
 
-    // Filter by search query (loan ID or borrower/lender address)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -75,8 +87,19 @@ export function LoanMarketplace({
       );
     }
 
-    // Sort
+    const getRate = (l: Loan) => {
+      const p = parseFloat(l.principal.replace(/\s*ETH/gi, "")) || 0;
+      const r = parseFloat(l.repayment.replace(/\s*ETH/gi, "")) || p;
+      return p > 0 ? ((r - p) / p) * 100 : 0;
+    };
+
     result.sort((a, b) => {
+      if (sortBy === "rateHigh") {
+        return getRate(b) - getRate(a);
+      }
+      if (sortBy === "rateLow") {
+        return getRate(a) - getRate(b);
+      }
       if (sortBy === "newest") {
         return b.id - a.id;
       }
@@ -103,9 +126,7 @@ export function LoanMarketplace({
 
   return (
     <div className="w-full">
-      {/* Marketplace Filter & Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#e5e5e5]">
-        {/* Status Filter Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
           {[
             { id: "all", label: "All Loans", count: loans.length },
@@ -113,6 +134,8 @@ export function LoanMarketplace({
             { id: "funded", label: "Funded", count: loans.filter((l) => l.status === "Funded").length },
             { id: "withdrawn", label: "Withdrawn", count: loans.filter((l) => l.status === "Withdrawn").length },
             { id: "repaid", label: "Settled", count: loans.filter((l) => l.status === "Repaid").length },
+            { id: "defaulted", label: "Defaulted", count: loans.filter((l) => l.status === "Defaulted").length },
+            { id: "cancelled", label: "Cancelled", count: loans.filter((l) => l.status === "Cancelled").length },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -159,10 +182,12 @@ export function LoanMarketplace({
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "newest" | "dueDate" | "amountHigh" | "amountLow")}
+            onChange={(e) => setSortBy(e.target.value as "newest" | "dueDate" | "amountHigh" | "amountLow" | "rateHigh" | "rateLow")}
             className="py-1.5 px-3 text-xs bg-[#ffffff] border border-[#e5e5e5] rounded-[8px] text-[#111111] focus:outline-none focus:border-[#111111] cursor-pointer"
           >
             <option value="newest">Newest First</option>
+            <option value="rateHigh">Highest Yield (% Return)</option>
+            <option value="rateLow">Lowest Yield (% Return)</option>
             <option value="dueDate">Due Date (Earliest)</option>
             <option value="amountHigh">Principal (High to Low)</option>
             <option value="amountLow">Principal (Low to High)</option>
@@ -197,7 +222,7 @@ export function LoanMarketplace({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 lg:gap-8">
           {filteredLoans.map((loan) => (
             <LoanCard
               key={loan.id}
@@ -208,7 +233,7 @@ export function LoanMarketplace({
               isWithdrawing={isWithdrawingLoan ? isWithdrawingLoan(loan.id) : false}
               onRepay={onRepay}
               isRepaying={isRepayingLoan ? isRepayingLoan(loan.id) : false}
-              onViewDetails={(l) => setSelectedLoan(l)}
+              onViewDetails={(l) => setSelectedLoanId(l.id)}
               connectedAccount={connectedAccount}
               isAnyTxPending={isAnyTxPending}
             />
@@ -220,13 +245,15 @@ export function LoanMarketplace({
       <LoanDetailsModal
         loan={selectedLoan}
         isOpen={!!selectedLoan}
-        onClose={() => setSelectedLoan(null)}
+        onClose={() => setSelectedLoanId(null)}
         onFund={onFund}
         isFunding={selectedLoan && isFundingLoan ? isFundingLoan(selectedLoan.id) : false}
         onWithdraw={onWithdraw}
         isWithdrawing={selectedLoan && isWithdrawingLoan ? isWithdrawingLoan(selectedLoan.id) : false}
         onRepay={onRepay}
         isRepaying={selectedLoan && isRepayingLoan ? isRepayingLoan(selectedLoan.id) : false}
+        onMarkDefault={onMarkDefault}
+        isMarkingDefault={selectedLoan && isMarkingDefaultLoan ? isMarkingDefaultLoan(selectedLoan.id) : false}
         connectedAccount={connectedAccount}
         isAnyTxPending={isAnyTxPending}
       />

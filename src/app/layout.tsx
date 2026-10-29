@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { WalletProvider } from "@/context/WalletContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -31,17 +32,19 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        {/* Anti-FOUC script: Immediately apply stored theme preference (defaults to dark) before render */}
-        <script
+        {/* Anti-FOUC script: Immediately apply stored theme preference before render */}
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("microloan_theme");var d=t==="light"?"light":"dark";if(d==="dark"){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}}catch(e){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("microloan_theme");var d=t==="dark"?"dark":"light";if(d==="dark"){document.documentElement.classList.add("dark");document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}}catch(e){document.documentElement.classList.remove("dark");document.documentElement.setAttribute("data-theme","light");}})();`,
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#ffffff] text-[#333333] antialiased font-sans selection:bg-[#111111] selection:text-[#ffffff] transition-colors duration-200">
+      <body className="min-h-full flex flex-col bg-[var(--theme-page-bg)] text-[var(--theme-text-secondary)] antialiased font-sans transition-colors duration-200">
         <ThemeProvider>
           <WalletProvider>{children}</WalletProvider>
         </ThemeProvider>

@@ -10,7 +10,7 @@ import React, {
   useSyncExternalStore,
   ReactNode,
 } from "react";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
+import { BrowserProvider, JsonRpcSigner, formatEther } from "ethers";
 
 export interface EthereumProvider {
   isMetaMask?: boolean;
@@ -29,6 +29,8 @@ declare global {
 export interface WalletContextType {
   account: string | null;
   shortAddress: string | null;
+  balance: string | null;
+  balanceRaw: bigint | null;
   chainId: number | null;
   networkName: string;
   isSepolia: boolean;
@@ -42,6 +44,7 @@ export interface WalletContextType {
   connectWallet: () => Promise<void>;
   switchToSepolia: () => Promise<boolean>;
   disconnectWallet: () => void;
+  refreshBalance: () => Promise<void>;
   clearError: () => void;
   clearAccountChangeNotice: () => void;
 }
@@ -63,6 +66,8 @@ const getEthereumServerSnapshot = () => false;
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
+  const [balanceRaw, setBalanceRaw] = useState<bigint | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
@@ -99,6 +104,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           setAccount(address);
           setSigner(currentSigner);
           prevAccountRef.current = address;
+
+          try {
+            const rawBal = await browserProvider.getBalance(address);
+            setBalanceRaw(rawBal);
+            const ethVal = parseFloat(formatEther(rawBal));
+            setBalance(`${ethVal.toFixed(4)} ETH`);
+          } catch (bErr) {
+            console.warn("Balance fetch error:", bErr);
+          }
+        } else {
+          setBalance(null);
+          setBalanceRaw(null);
         }
         setProvider(browserProvider);
         setError(null);
@@ -336,8 +353,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnectWallet = useCallback(() => {
     setAccount(null);
     setSigner(null);
+    setBalance(null);
+    setBalanceRaw(null);
     sessionStorage.setItem("microloan_wallet_disconnected", "true");
   }, []);
+
+  const refreshBalance = useCallback(async () => {
+    if (provider && account) {
+      try {
+        const rawBal = await provider.getBalance(account);
+        setBalanceRaw(rawBal);
+        const ethVal = parseFloat(formatEther(rawBal));
+        setBalance(`${ethVal.toFixed(4)} ETH`);
+      } catch (bErr) {
+        console.warn("Failed to refresh balance:", bErr);
+      }
+    }
+  }, [provider, account]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -377,6 +409,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       value={{
         account,
         shortAddress,
+        balance,
+        balanceRaw,
         chainId,
         networkName,
         isSepolia,
@@ -390,6 +424,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         connectWallet,
         switchToSepolia,
         disconnectWallet,
+        refreshBalance,
         clearError,
         clearAccountChangeNotice,
       }}

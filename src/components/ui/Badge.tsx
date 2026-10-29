@@ -6,6 +6,7 @@ export type BadgeVariant =
   | "withdrawn"
   | "repaid"
   | "defaulted"
+  | "cancelled"
   | "pending"
   | "active"
   | "warning"
@@ -51,6 +52,8 @@ export function Badge({
       "bg-[#fefce8] text-[#a16207] border-[#fef08a] dark:bg-[#2A2315] dark:text-[#E0A34B] dark:border-[#443720]",
     defaulted:
       "bg-[#fef2f2] text-[#b42318] border-[#fecaca] dark:bg-[#2D1818] dark:text-[#EA8A8A] dark:border-[#4D2626]",
+    cancelled:
+      "bg-[#f8fafc] text-[#64748b] border-[#cbd5e1] dark:bg-[#1e293b] dark:text-[#94a3b8] dark:border-[#334155]",
     error:
       "bg-[#fef2f2] text-[#b42318] border-[#fecaca] dark:bg-[#2D1818] dark:text-[#EA8A8A] dark:border-[#4D2626]",
     neutral:
@@ -67,18 +70,19 @@ export function Badge({
     success: "bg-[#16803c] dark:bg-[#96CC9E]",
     warning: "bg-[#a16207] dark:bg-[#E0A34B]",
     defaulted: "bg-[#b42318] dark:bg-[#EA8A8A]",
+    cancelled: "bg-[#64748b] dark:bg-[#94a3b8]",
     error: "bg-[#b42318] dark:bg-[#EA8A8A]",
     neutral: "bg-[#9ca3af] dark:bg-[#737373]",
   };
 
   const sizeStyles = {
-    sm: "px-2 py-0.5 text-[11px] font-medium",
-    md: "px-2.5 py-1 text-xs font-medium",
+    sm: "px-2.5 py-0.5 text-xs font-medium",
+    md: "px-3 py-1 text-xs sm:text-sm font-medium",
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border rounded-full ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 border rounded-full whitespace-nowrap shrink-0 ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
       {dot && (

@@ -11,6 +11,8 @@ export interface LenderDashboardProps {
   portfolioLoans: Loan[];
   isLoading: boolean;
   onExploreMarketplaceClick?: () => void;
+  onMarkDefault?: (loan: Loan) => void;
+  isMarkingDefaultLoan?: (loanId: number) => boolean;
   connectedAccount?: string | null;
   onConnectWallet?: () => void;
 }
@@ -19,6 +21,8 @@ export function LenderDashboard({
   portfolioLoans,
   isLoading,
   onExploreMarketplaceClick,
+  onMarkDefault,
+  isMarkingDefaultLoan,
   connectedAccount,
   onConnectWallet,
 }: LenderDashboardProps) {
@@ -261,6 +265,15 @@ export function LenderDashboard({
                     <span className="font-bold text-base text-[#111111] block">
                       {repaymentInfo.formatted}
                     </span>
+                    <span className="text-[11px] text-[#16803c] font-medium block">
+                      {(() => {
+                        const p = parseFloat(loan.principal.replace(/\s*ETH/gi, "")) || 0;
+                        const r = parseFloat(loan.repayment.replace(/\s*ETH/gi, "")) || p;
+                        const diff = Math.max(0, r - p);
+                        const pct = p > 0 ? ((diff / p) * 100).toFixed(1) : "0";
+                        return `+${diff.toFixed(4).replace(/\.?0+$/, "")} ETH (+${pct}%)`;
+                      })()}
+                    </span>
                   </div>
 
                   <div>
@@ -277,6 +290,8 @@ export function LenderDashboard({
                             ? "repaid"
                             : loan.status === "Defaulted"
                             ? "defaulted"
+                            : loan.status === "Cancelled"
+                            ? "cancelled"
                             : loan.status === "Withdrawn"
                             ? "withdrawn"
                             : "funded"
@@ -284,9 +299,9 @@ export function LenderDashboard({
                         size="sm"
                         dot
                       >
-                        {loan.status}
+                        {loan.status === "Cancelled" ? "Cancelled / Refunded" : loan.status}
                       </Badge>
-                      {loan.status !== "Repaid" && dueInfo.isPastDue && (
+                      {loan.status !== "Repaid" && loan.status !== "Defaulted" && dueInfo.isPastDue && (
                         <span className="text-[10px] font-bold text-[#b42318]">
                           Past Due
                         </span>
@@ -295,7 +310,17 @@ export function LenderDashboard({
                   </div>
                 </div>
 
-                <div className="shrink-0 flex items-center gap-2">
+                <div className="shrink-0 flex items-center md:justify-end gap-2 md:w-56">
+                  {loan.statusCode !== 4 && loan.statusCode !== 3 && dueInfo.isPastDue && onMarkDefault && (
+                    <Button
+                      variant={loan.status === "Funded" ? "danger" : "secondary"}
+                      size="sm"
+                      isLoading={isMarkingDefaultLoan ? isMarkingDefaultLoan(loan.id) : false}
+                      onClick={() => onMarkDefault(loan)}
+                    >
+                      {loan.status === "Funded" ? "Claim Refund" : "Record Default"}
+                    </Button>
+                  )}
                   <a
                     href={`${SEPOLIA_EXPLORER_URL}/address/${loan.borrower}`}
                     target="_blank"

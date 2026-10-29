@@ -119,7 +119,7 @@ export function useFundLoan(): FundLoanResult {
           const liveLoan = await contract.loans(loan.id);
           const liveStatusCode = Number(liveLoan.status);
           if (liveStatusCode !== 0) {
-            const statusNames = ["Requested", "Funded", "Withdrawn", "Repaid", "Defaulted"];
+            const statusNames = ["Requested", "Funded", "Withdrawn", "Repaid", "Defaulted", "Expired"];
             const currentStatusName = statusNames[liveStatusCode] || `Status #${liveStatusCode}`;
             const msg = `Cannot fund Loan #${loan.id}: This loan is currently in "${currentStatusName}" state on-chain and is no longer open for funding.`;
             setStatus("failed");

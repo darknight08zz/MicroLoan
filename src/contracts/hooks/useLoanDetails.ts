@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { formatEther, ZeroAddress } from "ethers";
 import { getReadOnlyMicroLoanContract } from "../microloan";
 import { isContractConfigured, getMicroLoanContractAddress } from "../config";
-import { Loan, LoanStatus, LoanStatusMap } from "@/types/loan";
-import { parseContractError, formatDueDate } from "@/utils";
+import { Loan } from "@/types/loan";
+import { parseContractError, formatDueDate, resolveLoanStatus } from "@/utils";
 
 export interface UseLoanDetailsResult {
   loan: Loan | null;
@@ -113,8 +113,26 @@ export function useLoanDetails(loanId: number | null | undefined): UseLoanDetail
 
           const formattedDate = formatDueDate(dueDateRaw);
 
-          // Smart contract alone is responsible for determining status
-          const resolvedStatus: LoanStatus = LoanStatusMap[statusCode] || "Requested";
+          const hasLender = Boolean(lender && lender !== ZeroAddress && lender !== "-");
+          let wasWithdrawn = statusCode === 2;
+          if (!wasWithdrawn && statusCode === 4 && hasLender) {
+            try {
+              if (typeof contract.queryFilter === "function" && contract.filters && contract.filters.LoanWithdrawn) {
+                const filter = contract.filters.LoanWithdrawn(loanId);
+                const events = await contract.queryFilter(filter, -40000);
+                wasWithdrawn = events.length > 0;
+              }
+            } catch (filterErr) {
+              console.warn("[MicroLoan Contract] Note: Could not query LoanWithdrawn filter:", filterErr);
+            }
+          }
+
+          const resolvedStatus = resolveLoanStatus({
+            statusCode,
+            dueDateTimestamp: dueDateRaw,
+            wasWithdrawn,
+            lender: hasLender ? lender : undefined,
+          });
 
           const parsedLoan: Loan = {
             id: loanId!,

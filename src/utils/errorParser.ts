@@ -420,33 +420,28 @@ export function validateLoanRequestInputs(
   }
 
   // 3. Due Date Validation
-  if (!dueDateStr) {
-    errors.dueDate = "Please select a repayment due date.";
+  if (!dueDateStr || !dueDateStr.trim()) {
+    errors.dueDate = "Please select a repayment due date and time.";
   } else {
-    const parts = dueDateStr.split("-").map(Number);
-    if (parts.length !== 3 || parts.some(isNaN)) {
-      errors.dueDate = "Please enter a valid calendar date.";
+    let targetDate = new Date(dueDateStr);
+    if (isNaN(targetDate.getTime()) && dueDateStr.includes("-")) {
+      const parts = dueDateStr.split("-").map(Number);
+      if (parts.length === 3) {
+        targetDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 45, 0);
+      }
+    }
+
+    const targetTimestamp = Math.floor(targetDate.getTime() / 1000);
+    const nowTimestamp = Math.floor(Date.now() / 1000);
+
+    if (isNaN(targetTimestamp)) {
+      errors.dueDate = "Please enter a valid date and time.";
+    } else if (targetTimestamp <= nowTimestamp) {
+      errors.dueDate = "Due date and time must be in the future.";
     } else {
-      const [y, m, d] = parts;
-      const dateObj = new Date(y, m - 1, d, 23, 59, 59, 999);
-      const targetTimestamp = Math.floor(dateObj.getTime() / 1000);
-      const nowTimestamp = Math.floor(Date.now() / 1000);
-
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const selectedDayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
-
-      if (isNaN(targetTimestamp)) {
-        errors.dueDate = "Please enter a valid calendar date.";
-      } else if (selectedDayStart.getTime() < todayStart.getTime()) {
-        errors.dueDate = "Due date cannot be in the past.";
-      } else if (targetTimestamp <= nowTimestamp) {
-        errors.dueDate = "Due date must be in the future.";
-      } else {
-        const maxFutureSeconds = 5 * 365 * 24 * 3600; // 5 years
-        if (targetTimestamp - nowTimestamp > maxFutureSeconds) {
-          errors.dueDate = "Due date cannot exceed 5 years in the future.";
-        }
+      const maxFutureSeconds = 5 * 365 * 24 * 3600; // 5 years
+      if (targetTimestamp - nowTimestamp > maxFutureSeconds) {
+        errors.dueDate = "Due date cannot exceed 5 years in the future.";
       }
     }
   }
